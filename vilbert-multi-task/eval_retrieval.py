@@ -155,10 +155,13 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
+
+
     if args.baseline:
         from pytorch_pretrained_bert.modeling import BertConfig
     else:
         from vilbert.vilbert import BertConfig
+
 
     task_names = []
     for i, task_id in enumerate(args.tasks.split("-")):
@@ -179,11 +182,18 @@ def main():
         open("config/" + args.bert_model + "_weight_name.json", "r")
     )
 
+
+
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device(
-            "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+            "cuda:1" if torch.cuda.is_available() and not args.no_cuda else "cpu"
         )
         n_gpu = torch.cuda.device_count()
+        # To ensure only 1 GPU is used
+        n_gpu = 1 # vikram overriden this
+        print('n_gpu: ', n_gpu)
+        # raise NotImplementedError
+
     else:
         torch.cuda.set_device(args.local_rank)
         device = torch.device("cuda", args.local_rank)
@@ -208,27 +218,36 @@ def main():
     if default_gpu and not os.path.exists(savePath):
         os.makedirs(savePath)
 
+    print('==================About to load dataset=====================')
     task_batch_size, task_num_iters, task_ids, task_datasets_val, task_dataloader_val = LoadDatasetEval(
         args, task_cfg, args.tasks.split("-")
     )
+    print('==================Loaded dataset=====================')
+    # raise NotImplementedError
 
-    num_labels = max([dataset.num_labels for dataset in task_datasets_val.values()])
+    num_labels = max([dataset.num_labels for dataset in task_datasets_val.values()]) # this is 1 for retrieval
+
 
     if args.task_specific_tokens:
         config.task_specific_tokens = True
 
     config.fast_mode = True
+
     if args.zero_shot:
+
         model = BertForMultiModalPreTraining.from_pretrained(
             args.from_pretrained, config
         )
     else:
+        print('==================Loading Vilbert=====================')
+        # raise NotImplementedError
         model = VILBertForVLTasks.from_pretrained(
             args.from_pretrained,
             config=config,
             num_labels=num_labels,
             default_gpu=default_gpu,
         )
+    # raise NotImplementedError
 
     task_losses = LoadLosses(args, task_cfg, args.tasks.split("-"))
     model.to(device)
@@ -242,6 +261,9 @@ def main():
         model = DDP(model, deay_allreduce=True)
 
     elif n_gpu > 1:
+    # vikram commented this area
+    # elif n_gpu > 1 and not isinstance(model, torch.nn.DataParallel):
+
         model = nn.DataParallel(model)
 
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
@@ -252,6 +274,10 @@ def main():
 
     model.eval()
     # when run evaluate, we run each task sequentially.
+    print('*****************************************')
+    print('DEVICE: ', device)
+    print('*****************************************')
+
     for task_id in task_ids:
         results = []
         others = []
@@ -262,6 +288,13 @@ def main():
         count = 0
 
         for i, batch in enumerate(task_dataloader_val[task_id]):
+            print('Batch: ', batch)
+            # Vikram Notes: batch is a list of 9 elements.
+            # print('Type of batch: ', type(batch))
+            # print('Length of batch: ', len(batch))
+            if i>=1:
+                raise NotImplementedError
+
             batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
             features, spatials, image_mask, question, input_mask, segment_ids, target, caption_idx, image_idx = (
                 batch
@@ -296,7 +329,32 @@ def main():
                     ] = (target.view(-1).float().cpu().numpy())
 
                 else:
-                    _, _, vil_logit, _, _, _, _, _, _ = model(
+
+                    # vikram commented this
+                    # _, _, vil_logit, _, _, _, _, _, _ = model(
+                    #     question,
+                    #     features,
+                    #     spatials,
+                    #     segment_ids,
+                    #     input_mask,
+                    #     image_mask,
+                    #     task_ids=task_tokens,
+                    # )
+                    # ##############################
+                    # vikram edited this
+                    # model_out = model(
+                    #     question,
+                    #     features,
+                    #     spatials,
+                    #     segment_ids,
+                    #     input_mask,
+                    #     image_mask,
+                    #     task_ids=task_tokens,
+                    # )
+                    # print('Model Out: ', model_out)
+                    # print('Len of model_out: ', len(model_out))
+                    # raise NotImplementedError
+                    _, _, vil_logit, _, _, _, _, _, _, _ = model(
                         question,
                         features,
                         spatials,

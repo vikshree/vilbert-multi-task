@@ -4,6 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from typing import List
+import os
 import csv
 import h5py
 import numpy as np
@@ -46,6 +47,7 @@ class ImageFeaturesH5Reader(object):
         # with h5py.File(self.features_h5path, "r", libver='latest', swmr=True) as features_h5:
         # self._image_ids = list(features_h5["image_ids"])
         # If not loaded in memory, then list of None.
+        # raise NotImplementedError
         self.env = lmdb.open(
             self.features_path,
             max_readers=1,
@@ -58,6 +60,11 @@ class ImageFeaturesH5Reader(object):
         with self.env.begin(write=False) as txn:
             self._image_ids = pickle.loads(txn.get("keys".encode()))
 
+        # total size of self._image_ids is 31783
+
+        # print('Length of self._image_ids: ', len(self._image_ids))
+        # raise NotImplementedError
+
         self.features = [None] * len(self._image_ids)
         self.num_boxes = [None] * len(self._image_ids)
         self.boxes = [None] * len(self._image_ids)
@@ -67,6 +74,7 @@ class ImageFeaturesH5Reader(object):
         return len(self._image_ids)
 
     def __getitem__(self, image_id):
+        
         image_id = str(image_id).encode()
         index = self._image_ids.index(image_id)
         if self._in_memory:

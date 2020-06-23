@@ -526,17 +526,31 @@ def LoadDatasets(args, task_cfg, ids, split="trainval"):
 
 
 def LoadDatasetEval(args, task_cfg, ids):
+    # args.in_memory decides whether data should be loaded in RAM or not
 
     tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
 
     task_feature_reader1 = {}
     task_feature_reader2 = {}
+    # vikram printed this
+    # print('Number of IDs: ', len(ids))
+    # print('Id[:10] = ', ids[:10])
+    # print('args.in_memory: ', args.in_memory)
+
     for i, task_id in enumerate(ids):
         task = "TASK" + task_id
+        # print('************************')
+        # print('task_cfg[task]["features_h5path1"]: ', task_cfg[task]["features_h5path1"])
+        # print('task_cfg[task]["features_h5path2"]: ', task_cfg[task]["features_h5path2"])
+        #
+        # print('************************')
+
         if task_cfg[task]["features_h5path1"] not in task_feature_reader1:
             task_feature_reader1[task_cfg[task]["features_h5path1"]] = None
         if task_cfg[task]["features_h5path2"] not in task_feature_reader2:
             task_feature_reader2[task_cfg[task]["features_h5path2"]] = None
+
+
 
     # initilzie the feature reader
     for features_h5path in task_feature_reader1.keys():
@@ -550,6 +564,8 @@ def LoadDatasetEval(args, task_cfg, ids):
             task_feature_reader2[features_h5path] = ImageFeaturesH5Reader(
                 features_h5path, args.in_memory
             )
+    # Note, dataset is not yet loaded
+    # only loading procedure is initialized till here
 
     task_datasets_val = {}
     task_dataloader_val = {}
@@ -576,6 +592,13 @@ def LoadDatasetEval(args, task_cfg, ids):
         else:
             eval_split = task_cfg[task]["val_split"]
 
+
+        # Here the data gets loaded
+        # DatasetMapEval is present in __init__.py
+        # Task name is RetrievalFlickr30k
+        print('TASK NAME: ', task_name)
+        # raise NotImplementedError
+
         task_datasets_val[task] = DatasetMapEval[task_name](
             task=task_cfg[task]["name"],
             dataroot=task_cfg[task]["dataroot"],
@@ -594,6 +617,8 @@ def LoadDatasetEval(args, task_cfg, ids):
             max_seq_length=task_cfg[task]["max_seq_length"],
             max_region_num=task_cfg[task]["max_region_num"],
         )
+        print('Dataset Finished loading!!')
+        print('Type of task_datasets_val[task]: ', type(task_datasets_val[task]))
 
         task_dataloader_val[task] = DataLoader(
             task_datasets_val[task],

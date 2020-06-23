@@ -954,7 +954,12 @@ class BertEncoder(nn.Module):
         all_attention_mask_c = []
 
         batch_size, num_words, t_hidden_size = txt_embedding.size()
-        _, num_regions, v_hidden_size = image_embedding.size()
+        # print('Text Embedding size: ', txt_embedding.size())
+        # print('Image Embedding size: ', image_embedding.size())
+        # print('================================================')
+        # raise NotImplementedError
+        # _, _, num_regions, v_hidden_size = image_embedding.size()
+        _, num_regions, v_hidden_size = image_embedding.size() # vikram commented this
 
         use_co_attention_mask = False
         for v_layer_id, t_layer_id in zip(self.v_biattention_id, self.t_biattention_id):

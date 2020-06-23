@@ -342,6 +342,19 @@ class RetreivalDatasetVal(Dataset):
         self._image_entries, self._caption_entries = _load_annotationsVal(
             annotations_jsonpath, task
         )
+        # vikram is prininting these:
+        # self._image_entries is a list of image IDs. Its first five elements look like:
+        # [1007129816, 1009434119, 101362133, 102617084, 10287332]
+        # self._caption_entries is a list of captions. Its first five elements look like:
+        # [{'caption': 'the man with pierced ears is wearing glasses and an orange hat', 'image_id': 1007129816},
+        # {'caption': 'a man with glasses is wearing a beer can crocheted hat', 'image_id': 1007129816},
+        # {'caption': 'a man with gauges and glasses is wearing a blitz hat', 'image_id': 1007129816},
+        # {'caption': 'a man in an orange hat starring at something', 'image_id': 1007129816},
+        # {'caption': 'a man wears an orange hat and glasses', 'image_id': 1007129816}]
+
+        # Len of self._image_entries (flickr-val):  1000
+        # Len of self._caption_entries (flickr-val):  5000
+
         self._image_features_reader = image_features_reader
         self._tokenizer = tokenizer
 
@@ -354,8 +367,8 @@ class RetreivalDatasetVal(Dataset):
         # cache file path data/cache/train_ques
         # cap_cache_path = "data/cocoRetreival/cache/val_cap.pkl"
         # if not os.path.exists(cap_cache_path):
-        self.tokenize()
-        self.tensorize()
+        self.tokenize() # this converts the captions into tokens (vector)
+        self.tensorize() # this converts the token-vector into tensor
         # cPickle.dump(self._entries, open(cap_cache_path, 'wb'))
         # else:
         # print('loading entries from %s' %(cap_cache_path))
@@ -366,6 +379,9 @@ class RetreivalDatasetVal(Dataset):
         self.image_mask_all = np.zeros((1000, self._max_region_num))
 
         for i, image_id in enumerate(self._image_entries):
+
+
+            # the following line calls the __getitem__ method from _image_features_reader.py()
             features, num_boxes, boxes, _ = self._image_features_reader[image_id]
 
             mix_num_boxes = min(int(num_boxes), self._max_region_num)
@@ -382,6 +398,13 @@ class RetreivalDatasetVal(Dataset):
             self.features_all[i] = mix_features_pad
             self.image_mask_all[i] = np.array(image_mask)
             self.spatials_all[i] = mix_boxes_pad
+
+            # print('Vikram is printing stuff: ')
+            # print('self.features_all[i]: ', self.features_all[i])
+            # print('self.image_mask_all[i]: ', self.image_mask_all[i])
+            # print('self.spatials_all[i]: ', self.spatials_all[i])
+
+            # raise NotImplementedError
 
             sys.stdout.write("%d/%d\r" % (i, len(self._image_entries)))
             sys.stdout.flush()
@@ -415,6 +438,7 @@ class RetreivalDatasetVal(Dataset):
             entry["token"] = tokens
             entry["input_mask"] = input_mask
             entry["segment_ids"] = segment_ids
+
 
     def tensorize(self):
         for entry in self._caption_entries:
